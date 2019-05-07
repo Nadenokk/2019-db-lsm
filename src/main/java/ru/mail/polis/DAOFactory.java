@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import ru.mail.polis.Persistence.LSMDao;
 
 /**
  * Custom {@link DAO} factory.
@@ -53,6 +54,7 @@ public final class DAOFactory {
             throw new IllegalArgumentException("Path is not a directory: " + data);
         }
 
-        return new MyDAO();
+        //return new MyDAO();
+        return new LSMDao(data, MAX_HEAP / 16);
     }
 }

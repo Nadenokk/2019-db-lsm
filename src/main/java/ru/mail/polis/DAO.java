@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
+import ru.mail.polis.Persistence.LSMDao;
 /**
  * Storage interface.
  *
