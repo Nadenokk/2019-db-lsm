@@ -4,9 +4,10 @@ import com.google.common.collect.Iterators;
 import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.nio.ByteBuffer;
+import java.io.IOException;
 
 public class MemTable implements Table {
-    private final NavigableMap<ByteBuffer, Value> map = new TreeMap<>();
+    private final SortedMap<ByteBuffer, Value> map = new TreeMap<>();
     private long sizeInBytes;
 
     @Override
@@ -16,19 +17,14 @@ public class MemTable implements Table {
 
     @NotNull
     @Override
-    public Iterator<Cell> iterator(@NotNull final ByteBuffer from) {
+    public Iterator<Cell> iterator(@NotNull final ByteBuffer from) throws IOException{
         return Iterators.transform(
                 map.tailMap(from).entrySet().iterator(),
-                e -> {
-                    if (e != null) {
-                        return new Cell(e.getKey(), e.getValue());
-                    }
-                    return null;
-                });
+                e -> ( new Cell(e.getKey(), e.getValue())));
     }
 
     @Override
-    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) {
+    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value)  throws IOException {
         final Value previous = map.put(key, Value.of(value));
         if (previous == null) {
             sizeInBytes += key.remaining() + value.remaining();
@@ -40,7 +36,7 @@ public class MemTable implements Table {
     }
 
     @Override
-    public void remove(@NotNull final ByteBuffer key) {
+    public void remove(@NotNull final ByteBuffer key) throws IOException {
         final Value previous = map.put(key, Value.tombstone());
         if (previous == null) {
             sizeInBytes += key.remaining();
@@ -49,18 +45,4 @@ public class MemTable implements Table {
         }
     }
 
-    @Override
-    public Cell get(@NotNull final ByteBuffer key) {
-        final Value value = map.get(key);
-        if (value == null) {
-            return null;
-        }
-        return new Cell(key, value);
-    }
-
-    @Override
-    public void clear() {
-        map.clear();
-        sizeInBytes = 0;
-    }
 }

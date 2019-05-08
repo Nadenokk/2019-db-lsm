@@ -7,8 +7,14 @@ import org.jetbrains.annotations.NotNull;
 public final class Value implements Comparable<Value> {
     private final long ts;
     private final ByteBuffer data;
-    private static final AtomicInteger nano = new AtomicInteger();
+    private static final AtomicInteger atomicInteger = new AtomicInteger();
 
+    /**
+     * Represent the data with timestamps.
+     *
+     * @param ts   timestamp
+     * @param data any data for DB
+     */
     private Value(final long ts, final ByteBuffer data) {
         assert ts >= 0;
         this.ts = ts;
@@ -16,26 +22,31 @@ public final class Value implements Comparable<Value> {
     }
 
     public static Value of(final ByteBuffer data) {
-        return new Value(getMoment(), data.duplicate());
+        return new Value(getTime(), data.duplicate());
     }
 
     public static Value of(final long time, final ByteBuffer data) {
         return new Value(time, data.duplicate());
     }
 
-    static Value tombstone() {
-        return tombstone(getMoment());
+    public static Value tombstone() {
+        return tombstone(getTime());
     }
 
-    static Value tombstone(final long time) {
+    public static Value tombstone(final long time) {
         return new Value(time, null);
     }
 
-    boolean isRemoved() {
+    public boolean isRemoved() {
         return data == null;
     }
 
-    ByteBuffer getData() {
+    /**
+     * Method for get data from DB.
+     *
+     * @return data from DB
+     */
+    public ByteBuffer getData() {
         if (data == null) {
             throw new IllegalArgumentException("");
         }
@@ -43,19 +54,17 @@ public final class Value implements Comparable<Value> {
     }
 
     @Override
-    public int compareTo(@NotNull final Value value) {
-        return Long.compare(value.ts, ts);
+    public int compareTo(@NotNull final Value o) {
+        return Long.compare(o.ts, ts);
     }
 
     long getTimeStamp() {
         return ts;
     }
 
-    private static long getMoment() {
-        final long time = System.currentTimeMillis() * 1_000 + nano.incrementAndGet();
-        if (nano.get() > 1000) {
-            nano.set(0);
-        }
+    private static long getTime() {
+        final long time = System.currentTimeMillis() * 1000 + atomicInteger.incrementAndGet();
+        if (atomicInteger.get() > 1000) atomicInteger.set(0);
         return time;
     }
 }

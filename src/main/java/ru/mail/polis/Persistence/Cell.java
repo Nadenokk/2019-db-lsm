@@ -9,6 +9,7 @@ public class Cell {
 
     @NotNull
     private final ByteBuffer key;
+
     @NotNull
     private final Value value;
 
