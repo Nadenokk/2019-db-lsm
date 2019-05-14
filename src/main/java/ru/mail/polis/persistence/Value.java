@@ -15,11 +15,17 @@ public final class Value implements Comparable<Value> {
         this.data = data;
     }
 
-    public static Value of(final ByteBuffer data) { return new Value(getTime(), data.duplicate()); }
+    public static Value of(final ByteBuffer data) {
+        return new Value(getTime(), data.duplicate());
+    }
 
-    static Value tombstone() { return new Value(getTime(), null); }
+    static Value tombstone() {
+        return new Value(getTime(), null);
+    }
 
-    boolean isRemoved() { return data == null; }
+    boolean isRemoved() {
+        return data == null;
+    }
 
     ByteBuffer getData() {
         if (data == null) {
@@ -29,7 +35,9 @@ public final class Value implements Comparable<Value> {
     }
 
     @Override
-    public int compareTo(@NotNull final Value o) { return Long.compare(o.ts, ts); }
+    public int compareTo(@NotNull final Value o) {
+        return Long.compare(o.ts, ts);
+    }
 
     long getTimeStamp() { return ts; }
 

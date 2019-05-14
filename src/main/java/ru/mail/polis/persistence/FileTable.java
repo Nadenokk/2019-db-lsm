@@ -18,20 +18,20 @@ public final class FileTable implements Table {
     private final int rows;
     private final IntBuffer offsets;
     private final ByteBuffer cells;
-    private final int sizeFileBytes;
+    private final int sizeFile;
     private final Path path;
 
     FileTable(final File file) throws IOException {
-        this.sizeFileBytes = (int) file.length();
+        this.sizeFile = (int) file.length();
         this.path = file.toPath();
         final ByteBuffer mapped;
 
         try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ);) {
-            assert sizeFileBytes <= Integer.MAX_VALUE;
+            assert this.sizeFile <= Integer.MAX_VALUE;
             mapped = fc.map(FileChannel.MapMode.READ_ONLY, 0L, fc.size()).order(ByteOrder.BIG_ENDIAN);
         }
         // Rows
-        rows = mapped.getInt(sizeFileBytes - Integer.BYTES);
+        rows = mapped.getInt(this.sizeFile - Integer.BYTES);
 
         // Offset
         final ByteBuffer offsetBuffer = mapped.duplicate();

@@ -12,7 +12,9 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.*;
+import java.util.Collection;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,7 +43,8 @@ public final class LSMDao implements DAO {
         this.memTable = new MemTable();
         this.fileTables = new ArrayList<>();
 
-        try (Stream<Path> pStream = Files.walk(base.toPath(), 1).filter(p -> p.getFileName().toString().endsWith(SUFFIX))) {
+        try (Stream<Path> pStream = Files.walk(base.toPath(), 1)
+                .filter(p -> p.getFileName().toString().endsWith(SUFFIX))) {
             pStream.collect(Collectors.toList()).forEach(path -> {
                 final File file = path.toFile();
                 if (!path.getFileName().toString().startsWith("trash")) {
@@ -119,7 +122,8 @@ public final class LSMDao implements DAO {
             filesIterators.add(fileTable.iterator(from));
         }
         filesIterators.add(memTable.iterator(from));
-        final Iterator<Cell> cells = Iters.collapseEquals(Iterators.mergeSorted(filesIterators, Cell.COMPARATOR), Cell::getKey);
+        final Iterator<Cell> cells = Iters.collapseEquals(Iterators
+                .mergeSorted(filesIterators, Cell.COMPARATOR), Cell::getKey);
         return Iterators.filter(cells, cell -> !cell.getValue().isRemoved());
     }
 }
