@@ -24,6 +24,7 @@ public final class FileTable implements Table {
     FileTable(final File file) throws IOException {
         final int sizeFile = (int) file.length();
         this.path = file.toPath();
+        this.sizeFileInByte = sizeFile;
         final ByteBuffer mapped;
 
         try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ);) {
@@ -44,12 +45,11 @@ public final class FileTable implements Table {
         final ByteBuffer cellBuffer = mapped.duplicate();
         cellBuffer.limit(offsetBuffer.position());
         this.cells = cellBuffer.slice();
-        this.sizeFileInByte=sizeFile;
     }
 
     @Override
     public long sizeInBytes() {
-        throw new UnsupportedOperationException("");
+        return sizeFileInByte;
     }
     /**
      * Writes MemTable data to disk.
@@ -58,9 +58,9 @@ public final class FileTable implements Table {
      * @param file    path of the file where data needs to be written
      * @throws IOException if an I/O error occurred
      */
+
     static void write(final Iterator<Cell> cells, final File file) throws IOException {
-        try (FileChannel fc = FileChannel.open(file.toPath(),
-                StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
+        try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
             final List<Integer> offsets = new ArrayList<>();
             int offset = 0;
             while (cells.hasNext()) {
