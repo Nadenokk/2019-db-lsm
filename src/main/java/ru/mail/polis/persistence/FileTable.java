@@ -60,8 +60,9 @@ public final class FileTable implements Table {
      */
 
     static void write(final Iterator<Cell> cells, final File file) throws IOException {
-        try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
-            final List<Integer> offsets = new ArrayList<>();
+        final List<Integer> offsets = new ArrayList<>();
+        try (FileChannel fc = FileChannel.open(file.toPath(),
+                StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
             int offset = 0;
             while (cells.hasNext()) {
                 final Cell cell = cells.next();
@@ -85,8 +86,7 @@ public final class FileTable implements Table {
                     final int valueSize = value.getData().remaining();
                     fc.write(fromInt(valueSize));
                     fc.write(valueData);
-                    offset += Integer.BYTES;
-                    offset += valueSize;
+                    offset += Integer.BYTES + valueSize;
                 }
             }
             // Offsets
