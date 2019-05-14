@@ -39,7 +39,9 @@ public final class Value implements Comparable<Value> {
         return Long.compare(o.ts, ts);
     }
 
-    long getTimeStamp() { return ts; }
+    long getTimeStamp() {
+        return ts;
+    }
 
     private static long getTime() {
         final long time = System.currentTimeMillis() * 10000 + atomicInteger.incrementAndGet();

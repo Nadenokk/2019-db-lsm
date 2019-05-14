@@ -18,20 +18,21 @@ public final class FileTable implements Table {
     private final int rows;
     private final IntBuffer offsets;
     private final ByteBuffer cells;
-    private final int sizeFile;
+    private final int sizeFileInByte;
     private final Path path;
 
     FileTable(final File file) throws IOException {
-        this.sizeFile = (int) file.length();
+        final int sizeFile = (int) file.length();
         this.path = file.toPath();
         final ByteBuffer mapped;
 
         try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ);) {
-            assert this.sizeFile <= Integer.MAX_VALUE;
-            mapped = fc.map(FileChannel.MapMode.READ_ONLY, 0L, fc.size()).order(ByteOrder.BIG_ENDIAN);
+            assert sizeFile <= Integer.MAX_VALUE;
+            mapped = fc.map(FileChannel.MapMode.READ_ONLY, 0L, fc.size())
+                    .order(ByteOrder.BIG_ENDIAN);
         }
         // Rows
-        rows = mapped.getInt(this.sizeFile - Integer.BYTES);
+        rows = mapped.getInt(sizeFile - Integer.BYTES);
 
         // Offset
         final ByteBuffer offsetBuffer = mapped.duplicate();
@@ -43,6 +44,7 @@ public final class FileTable implements Table {
         final ByteBuffer cellBuffer = mapped.duplicate();
         cellBuffer.limit(offsetBuffer.position());
         this.cells = cellBuffer.slice();
+        this.sizeFileInByte=sizeFile;
     }
 
     @Override
@@ -53,11 +55,12 @@ public final class FileTable implements Table {
      * Writes MemTable data to disk.
      *
      * @param cells iterator of MemTable
-     * @param to    path of the file where data needs to be written
+     * @param file    path of the file where data needs to be written
      * @throws IOException if an I/O error occurred
      */
-    static void write(final Iterator<Cell> cells, final File to) throws IOException {
-        try (FileChannel fc = FileChannel.open(to.toPath(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
+    static void write(final Iterator<Cell> cells, final File file) throws IOException {
+        try (FileChannel fc = FileChannel.open(file.toPath(),
+                StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
             final List<Integer> offsets = new ArrayList<>();
             int offset = 0;
             while (cells.hasNext()) {
@@ -92,6 +95,8 @@ public final class FileTable implements Table {
             }
             // Cells
             fc.write(fromInt(offsets.size()));
+        } catch (IOException e){
+            e.printStackTrace();
         }
     }
 
