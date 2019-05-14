@@ -79,7 +79,7 @@ public final class LSMDao implements DAO {
     private void flush(@NotNull final Iterator<Cell> iterator) throws IOException {
         if (!iterator.hasNext()) return;
         final File tmp = new File(base, generation + TABLE + TEMP);
-        FileTable.write(iterator, tmp);
+        FileTable.writeTable(iterator, tmp);
         final File dest = new File(base, generation + TABLE + SUFFIX);
         Files.move(tmp.toPath(), dest.toPath(), StandardCopyOption.ATOMIC_MOVE);
         generation++;
@@ -104,7 +104,7 @@ public final class LSMDao implements DAO {
         final Iterator<Cell> alive = cellIterator(ByteBuffer.allocate(0));
         generation =1;
         final File tmp = new File(base, generation + TABLE + TEMP);
-        FileTable.write(alive, tmp);
+        FileTable.writeTable(alive, tmp);
         for (final FileTable fileTable : fileTables) {
             Files.delete(fileTable.getPath());
         }

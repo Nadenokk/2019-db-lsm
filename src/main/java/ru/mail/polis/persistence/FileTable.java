@@ -59,7 +59,7 @@ public final class FileTable implements Table {
      * @throws IOException if an I/O error occurred
      */
 
-    static void write(final Iterator<Cell> cells, final File file) throws IOException {
+    static void writeTable(final Iterator<Cell> cells, final File file) throws IOException {
         final List<Integer> offsets = new ArrayList<>();
         try (FileChannel fc = FileChannel.open(file.toPath(),
                 StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
