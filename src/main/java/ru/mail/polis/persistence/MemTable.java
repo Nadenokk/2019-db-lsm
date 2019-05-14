@@ -1,4 +1,4 @@
-package ru.mail.polis.Persistence;
+package ru.mail.polis.persistence;
 
 import com.google.common.collect.Iterators;
 import org.jetbrains.annotations.NotNull;

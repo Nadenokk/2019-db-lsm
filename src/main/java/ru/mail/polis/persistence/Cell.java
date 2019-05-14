@@ -1,4 +1,4 @@
-package ru.mail.polis.Persistence;
+package ru.mail.polis.persistence;
 
 import java.nio.ByteBuffer;
 import java.util.Comparator;

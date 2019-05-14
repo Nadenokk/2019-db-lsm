@@ -1,4 +1,4 @@
-package ru.mail.polis.Persistence;
+package ru.mail.polis.persistence;
 
 import com.google.common.collect.Iterators;
 import org.jetbrains.annotations.NotNull;
@@ -23,7 +23,7 @@ public final class LSMDao implements DAO {
 
     private final long flushThreshold;
     private final File base;
-    private Collection<FileTable> fileTables;
+    private final Collection<FileTable> fileTables;
     private Table memTable;
     private int generation;
 
@@ -43,9 +43,9 @@ public final class LSMDao implements DAO {
 
         try (Stream<Path> pStream = Files.walk(base.toPath(), 1).filter(p -> p.getFileName().toString().endsWith(SUFFIX))) {
             pStream.collect(Collectors.toList()).forEach(path -> {
-                File file = path.toFile();
+                final File file = path.toFile();
                 if (!path.getFileName().toString().startsWith("trash")) {
-                    String[] str = file.getName().split(TABLE);
+                    final String[] str = file.getName().split(TABLE);
                     try {
                         fileTables.add(new FileTable(file));
                         generation = Math.max(generation, Integer.parseInt(str[0]));
@@ -120,7 +120,6 @@ public final class LSMDao implements DAO {
         }
         filesIterators.add(memTable.iterator(from));
         final Iterator<Cell> cells = Iters.collapseEquals(Iterators.mergeSorted(filesIterators, Cell.COMPARATOR), Cell::getKey);
-        final Iterator<Cell> alive = Iterators.filter(cells, cell -> !cell.getValue().isRemoved());
-        return alive;
+        return Iterators.filter(cells, cell -> !cell.getValue().isRemoved());
     }
 }

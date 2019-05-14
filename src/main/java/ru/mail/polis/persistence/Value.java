@@ -1,4 +1,4 @@
-package ru.mail.polis.Persistence;
+package ru.mail.polis.persistence;
 
 import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.atomic.AtomicInteger;

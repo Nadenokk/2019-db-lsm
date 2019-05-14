@@ -1,4 +1,4 @@
-package ru.mail.polis.Persistence;
+package ru.mail.polis.persistence;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -18,20 +18,20 @@ public final class FileTable implements Table {
     private final int rows;
     private final IntBuffer offsets;
     private final ByteBuffer cells;
-    private final int sizeFileInBytes;
+    private final int sizeFileBytes;
     private final Path path;
 
     FileTable(final File file) throws IOException {
-        this.sizeFileInBytes = (int) file.length();
+        this.sizeFileBytes = (int) file.length();
         this.path = file.toPath();
         final ByteBuffer mapped;
 
         try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ);) {
-            assert sizeFileInBytes <= Integer.MAX_VALUE;
+            assert sizeFileBytes <= Integer.MAX_VALUE;
             mapped = fc.map(FileChannel.MapMode.READ_ONLY, 0L, fc.size()).order(ByteOrder.BIG_ENDIAN);
         }
         // Rows
-        rows = mapped.getInt(sizeFileInBytes - Integer.BYTES);
+        rows = mapped.getInt(sizeFileBytes - Integer.BYTES);
 
         // Offset
         final ByteBuffer offsetBuffer = mapped.duplicate();
@@ -87,7 +87,9 @@ public final class FileTable implements Table {
                 }
             }
             // Offsets
-            for (final Integer anOffset : offsets) { fc.write(fromInt(anOffset)); }
+            for (final Integer anOffset : offsets) {
+                fc.write(fromInt(anOffset));
+            }
             // Cells
             fc.write(fromInt(offsets.size()));
         }

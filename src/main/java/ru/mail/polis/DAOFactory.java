@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
-import ru.mail.polis.Persistence.LSMDao;
+import ru.mail.polis.persistence.LSMDao;
 
 /**
  * Custom {@link DAO} factory.
