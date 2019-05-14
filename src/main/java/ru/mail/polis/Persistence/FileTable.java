@@ -1,148 +1,150 @@
 package ru.mail.polis.Persistence;
 
 import org.jetbrains.annotations.NotNull;
-import java.util.*;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.file.StandardOpenOption;
+
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
-public class FileTable implements Table {
+public final class FileTable implements Table {
     private final int rows;
-    private final long offset;
-    private final File file;
+    private final IntBuffer offsets;
+    private final ByteBuffer cells;
+    private final int sizeFileInBytes;
+    private final Path path;
 
-    public FileTable(final File file) throws IOException {
-        this.file = file;
-        final int rowsValue;
-        final long offset = file.length() - Long.BYTES;;
-        final int s;
+    FileTable(final File file) throws IOException {
+        this.sizeFileInBytes = (int) file.length();
+        this.path = file.toPath();
+        final ByteBuffer mapped;
 
-        try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ)) {
-            assert offset < Integer.MAX_VALUE;
-            rowsValue = (int) readLong(fc, offset);
-            s=readInt(fc, offset);
+        try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ);) {
+            assert sizeFileInBytes <= Integer.MAX_VALUE;
+            mapped = fc.map(FileChannel.MapMode.READ_ONLY, 0L, fc.size()).order(ByteOrder.BIG_ENDIAN);
         }
-        this.rows =  rowsValue;
-        this.offset = offset - Long.BYTES * rows - Integer.BYTES - s * Integer.BYTES;
+        // Rows
+        rows = mapped.getInt(sizeFileInBytes - Integer.BYTES);
+
+        // Offset
+        final ByteBuffer offsetBuffer = mapped.duplicate();
+        offsetBuffer.position(mapped.limit() - Integer.BYTES * rows - Integer.BYTES);
+        offsetBuffer.limit(mapped.limit() - Integer.BYTES);
+        this.offsets = offsetBuffer.slice().asIntBuffer();
+
+        // Cells
+        final ByteBuffer cellBuffer = mapped.duplicate();
+        cellBuffer.limit(offsetBuffer.position());
+        this.cells = cellBuffer.slice();
     }
 
+    @Override
+    public long sizeInBytes() {
+        throw new UnsupportedOperationException("");
+    }
+    /**
+     * Writes MemTable data to disk.
+     *
+     * @param cells iterator of MemTable
+     * @param to    path of the file where data needs to be written
+     * @throws IOException if an I/O error occurred
+     */
     static void write(final Iterator<Cell> cells, final File to) throws IOException {
-        try (FileChannel fc = FileChannel.open(to.toPath(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE))
-        {
+        try (FileChannel fc = FileChannel.open(to.toPath(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
             final List<Integer> offsets = new ArrayList<>();
             int offset = 0;
             while (cells.hasNext()) {
-                offsets.add(offset);
                 final Cell cell = cells.next();
+                offsets.add(offset);
                 final ByteBuffer key = cell.getKey();
                 final int keySize = cell.getKey().remaining();
                 final Value value = cell.getValue();
-
-                //Key
-                offset += Integer.BYTES + key.remaining();
+                // Key
                 fc.write(fromInt(keySize));
                 fc.write(key);
-
-                //Timestamp
-                offset += Long.BYTES;
+                offset += keySize +Integer.BYTES+ Long.BYTES;
+                // Timestamp
                 if (value.isRemoved()) {
                     fc.write(fromLong(-cell.getValue().getTimeStamp()));
                 } else {
                     fc.write(fromLong(cell.getValue().getTimeStamp()));
                 }
-
-                //Value
+                // Value
                 if (!value.isRemoved()) {
-                    offset +=Integer.BYTES + value.getData().remaining();
                     final ByteBuffer valueData = value.getData();
-                    final int valueSize = valueData.remaining();
+                    final int valueSize = value.getData().remaining();
                     fc.write(fromInt(valueSize));
                     fc.write(valueData);
+                    offset += Integer.BYTES;
+                    offset += valueSize;
                 }
             }
-
-            //Offsets
-            for (final int anOffset : offsets) {
-                fc.write(fromLong(anOffset));
-            }
-            fc.write(fromInt(0));
-            fc.write(fromLong(offsets.size()));
+            // Offsets
+            for (final Integer anOffset : offsets) { fc.write(fromInt(anOffset)); }
+            // Cells
+            fc.write(fromInt(offsets.size()));
         }
     }
 
-    @NotNull
     private ByteBuffer keyAt(final int i) {
-        try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ)) {
-            assert fc != null;
-            long offset = getOffset(fc, i);
-            assert offset <= Integer.MAX_VALUE;
-
-            final int keySize = readInt(fc, offset);
-            offset += Integer.BYTES;
-
-            return readBuffer(fc, offset, keySize);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+        assert 0 <= i && i < rows;
+        final int offset = offsets.get(i);
+        final int keySize = cells.getInt(offset);
+        final ByteBuffer key = cells.duplicate();
+        key.position(offset + Integer.BYTES);
+        key.limit(key.position() + keySize);
+        return key.slice();
     }
 
     private Cell cellAt(final int i) {
         assert 0 <= i && i < rows;
-
-        try (FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.READ)) {
-            assert fc != null;
-            long offset = getOffset(fc, i);
-            assert offset <= Integer.MAX_VALUE;
-
-            //Key
-            final int keySize = readInt(fc, offset);
+        int offset = offsets.get(i);
+        // Key
+        final int keySize = cells.getInt(offset);
+        offset += Integer.BYTES;
+        final ByteBuffer key = cells.duplicate();
+        key.position(offset);
+        key.limit(key.position() + keySize);
+        offset += keySize;
+        // Timestamp
+        final long timestamp = cells.getLong(offset);
+        offset += Long.BYTES;
+        if (timestamp < 0) {
+            return new Cell(key.slice(), new Value(-timestamp, null));
+        } else {
+            final int valueSize = cells.getInt(offset);
             offset += Integer.BYTES;
-
-            final ByteBuffer key = readBuffer(fc, offset, keySize);
-            offset += keySize;
-
-            //Timestamp
-            final long timeStamp = readLong(fc, offset);
-            offset += Long.BYTES;
-
-            if (timeStamp < 0) {
-                return new Cell(key, Value.tombstone(-timeStamp));
-            }
-
-            final int valueSize = readInt(fc, offset);
-            offset += Integer.BYTES;
-
-            final ByteBuffer value = readBuffer(fc, offset, valueSize);
-            return new Cell(key, Value.of(timeStamp, value));
-        } catch (IOException e) {
-            e.printStackTrace();
+            final ByteBuffer value = cells.duplicate();
+            value.position(offset);
+            value.limit(value.position() + valueSize)
+                    .position(offset)
+                    .limit(offset + valueSize);
+            return new Cell(key.slice(), new Value(timestamp, value.slice()));
         }
-        return null;
     }
 
     private int position(final ByteBuffer from) {
         int left = 0;
         int right = rows - 1;
         while (left <= right) {
-            final int mid = left + ((right - left) >> 1);
-            final int cmp = from.compareTo(keyAt(mid));
+            final int mid = left + (right - left) / 2;
+            final int cmp = keyAt(mid).compareTo(from);
             if (cmp < 0) {
-                right = mid - 1;
-            } else if (cmp > 0) {
                 left = mid + 1;
+            } else if (cmp > 0) {
+                right = mid - 1;
             } else {
                 return mid;
             }
         }
         return left;
-    }
-
-    @Override
-    public long sizeInBytes() {
-        throw new UnsupportedOperationException("");
     }
 
     @NotNull
@@ -164,57 +166,18 @@ public class FileTable implements Table {
         };
     }
 
-    private int readInt(final FileChannel fc, final long offset) {
-        final ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
-        try {
-            fc.read(buffer, offset);
-            return buffer.rewind().getInt();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return -1;
+    static ByteBuffer fromInt(final int value) {
+        final ByteBuffer result = ByteBuffer.allocate(Integer.BYTES);
+        result.putInt(value);
+        result.rewind();
+        return result;
     }
 
-    private long readLong(final FileChannel fc, final long offset) {
-        final ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        try {
-            fc.read(buffer, offset);
-            return buffer.rewind().getLong();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return -1L;
-    }
-
-    private ByteBuffer readBuffer(final FileChannel fc, final long offset, final int size) {
-        final ByteBuffer buffer = ByteBuffer.allocate(size);
-        try {
-            fc.read(buffer, offset);
-            return buffer.rewind();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return buffer;
-    }
-
-    private long getOffset(final FileChannel fc, final int i) {
-        final ByteBuffer offsetBB = ByteBuffer.allocate(Long.BYTES);
-        try {
-            fc.read(offsetBB, offset + Long.BYTES * i);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return offsetBB.rewind().getLong();
-    }
-
-
-    public static ByteBuffer fromInt(final int value){
-        return ByteBuffer.allocate(Integer.BYTES).putInt(value).rewind();
-    }
-
-    public static ByteBuffer fromLong(final long value) {
-        return ByteBuffer.allocate(Long.BYTES).putLong(value).rewind();
+    static ByteBuffer fromLong(final long value) {
+        final ByteBuffer result = ByteBuffer.allocate(Long.BYTES);
+        result.putLong(value);
+        result.rewind();
+        return result;
     }
 
     @Override
@@ -226,5 +189,8 @@ public class FileTable implements Table {
     public void remove(@NotNull final ByteBuffer key) {
         throw new UnsupportedOperationException("");
     }
-}
 
+    public Path getPath() {
+        return path;
+    }
+}

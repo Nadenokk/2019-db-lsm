@@ -2,29 +2,30 @@ package ru.mail.polis.Persistence;
 
 import com.google.common.collect.Iterators;
 import org.jetbrains.annotations.NotNull;
-import java.util.*;
-import java.nio.ByteBuffer;
-import java.io.IOException;
 
-public class MemTable implements Table {
+import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
+public final class MemTable implements Table {
     private final SortedMap<ByteBuffer, Value> map = new TreeMap<>();
     private long sizeInBytes;
 
-    @Override
     public long sizeInBytes() {
         return sizeInBytes;
     }
 
     @NotNull
     @Override
-    public Iterator<Cell> iterator(@NotNull final ByteBuffer from) throws IOException{
+    public Iterator<Cell> iterator(@NotNull final ByteBuffer from) {
         return Iterators.transform(
                 map.tailMap(from).entrySet().iterator(),
-                e -> ( new Cell(e.getKey(), e.getValue())));
+                e -> new Cell(e.getKey(), e.getValue()));
     }
 
     @Override
-    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value)  throws IOException {
+    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) {
         final Value previous = map.put(key, Value.of(value));
         if (previous == null) {
             sizeInBytes += key.remaining() + value.remaining();
@@ -36,7 +37,7 @@ public class MemTable implements Table {
     }
 
     @Override
-    public void remove(@NotNull final ByteBuffer key) throws IOException {
+    public void remove(@NotNull final ByteBuffer key) {
         final Value previous = map.put(key, Value.tombstone());
         if (previous == null) {
             sizeInBytes += key.remaining();
@@ -44,5 +45,4 @@ public class MemTable implements Table {
             sizeInBytes -= previous.getData().remaining();
         }
     }
-
 }
