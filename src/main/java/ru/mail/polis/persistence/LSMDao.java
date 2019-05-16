@@ -23,6 +23,7 @@ public final class LSMDao implements DAO {
     private static final String TEMP = ".tmp";
     private static final String TABLE = "ssTable";
 
+    private final ByteBuffer nullBuffer = ByteBuffer.allocate(0);
     private final long flushThreshold;
     private final File base;
     private final Collection<FileTable> fileTables;
@@ -72,7 +73,7 @@ public final class LSMDao implements DAO {
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) throws IOException {
         memTable.upsert(key, value);
         if (memTable.sizeInBytes() >= flushThreshold) {
-            flush(memTable.iterator(ByteBuffer.allocate(0)));
+            flush(memTable.iterator(nullBuffer));
         }
     }
 
@@ -90,19 +91,19 @@ public final class LSMDao implements DAO {
     public void remove(@NotNull final ByteBuffer key) throws IOException {
         memTable.remove(key);
         if (memTable.sizeInBytes() >= flushThreshold) {
-            flush(memTable.iterator(ByteBuffer.allocate(0)));
+            flush(memTable.iterator(nullBuffer));
         }
     }
 
     @Override
     public void close() throws IOException {
-        flush(memTable.iterator(ByteBuffer.allocate(0)));
+        flush(memTable.iterator(nullBuffer));
     }
 
     @Override
     public void compact() throws IOException {
-        final Iterator<Cell> alive = cellIterator(ByteBuffer.allocate(0));
-        generation =1;
+        final Iterator<Cell> alive = cellIterator(nullBuffer);
+        generation = 1;
         final File tmp = new File(base, generation + TABLE + TEMP);
         FileTable.writeTable(alive, tmp);
         for (final FileTable fileTable : fileTables) {
