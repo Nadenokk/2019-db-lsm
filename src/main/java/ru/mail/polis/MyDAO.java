@@ -19,7 +19,7 @@ public class MyDAO implements DAO{
     }
 
     @Override
-    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) {
+    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value,Integer ... opt) {
         data.put(key, Record.of(key, value));
     }
 

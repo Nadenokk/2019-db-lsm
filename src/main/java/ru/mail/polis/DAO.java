@@ -89,7 +89,8 @@ public interface DAO extends Closeable {
      */
     void upsert(
             @NotNull ByteBuffer key,
-            @NotNull ByteBuffer value) throws IOException;
+            @NotNull ByteBuffer value,
+            Integer ... opt) throws IOException;
 
     /**
      * Removes value by given key.

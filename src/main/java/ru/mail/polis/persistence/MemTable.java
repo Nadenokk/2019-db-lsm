@@ -25,14 +25,14 @@ public final class MemTable implements Table {
     }
 
     @Override
-    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) {
-        final Value previous = map.put(key, Value.of(value));
+    public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value,long ttl) {
+        final Value previous = map.put(key, Value.of(value,ttl));
         if (previous == null) {
-            sizeInBytes += key.remaining() + value.remaining();
+            sizeInBytes += key.remaining() + value.remaining()+ Long.BYTES;
         } else if (previous.isRemoved()) {
-            sizeInBytes += value.remaining();
+            sizeInBytes += value.remaining() + Long.BYTES;
         } else {
-            sizeInBytes += value.remaining() - previous.getData().remaining();
+            sizeInBytes += value.remaining() + Long.BYTES - previous.getData().remaining();
         }
     }
 
