@@ -17,11 +17,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.FileOutputStream;
-
 
 public final class LSMDao implements DAO {
     private static final String SUFFIX = ".dat";
@@ -84,8 +80,8 @@ public final class LSMDao implements DAO {
 
     @Override
     public void upsert(@NotNull final ByteBuffer key, @NotNull final InputStream stream) throws IOException {
-        byte[] bytes = stream.readAllBytes();
-        ByteBuffer value = ByteBuffer.wrap(bytes);
+        final byte[] bytes = stream.readAllBytes();
+        final ByteBuffer value = ByteBuffer.wrap(bytes);
         memTable.upsert(key, value);
         if (memTable.sizeInBytes() >= flushThreshold) {
             flush(memTable.iterator(nullBuffer));
