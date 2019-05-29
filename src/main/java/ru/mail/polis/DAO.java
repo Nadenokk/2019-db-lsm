@@ -92,7 +92,6 @@ public interface DAO extends Closeable {
      *
      * @throws NoSuchElementException if no such record
      */
-    @NotNull
     default OutputStream getStream(@NotNull ByteBuffer key) throws IOException, NoSuchElementException {
         final Iterator<Record> iter = iterator(key);
         if (!iter.hasNext()) {
@@ -101,7 +100,7 @@ public interface DAO extends Closeable {
 
         final Record next = iter.next();
         if (next.getKey().equals(key)) {
-            final OutputStream outputStream = null;
+            OutputStream outputStream = null;
             final WritableByteChannel channel = Channels.newChannel(outputStream);
             channel.write(next.getValue());
             return outputStream;
