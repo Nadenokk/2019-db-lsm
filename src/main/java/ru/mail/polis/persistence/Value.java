@@ -7,24 +7,16 @@ import java.nio.ByteBuffer;
 
 public final class Value implements Comparable<Value> {
     private final long ts;
-    private final long ttl;
     private final ByteBuffer data;
     private static final AtomicInteger atomicInteger = new AtomicInteger();
 
     Value(final long ts, final ByteBuffer data) {
         this.ts = ts;
         this.data = data;
-        this.ttl =0;
     }
 
-    Value(final long ts, final ByteBuffer data,final long ttl) {
-        this.ts = ts;
-        this.data = data;
-        this.ttl =ttl;
-    }
-
-    public static Value of(final ByteBuffer data,final long ttl) {
-        return new Value(getTime(), data.duplicate(),ttl);
+    public static Value of(final ByteBuffer data) {
+        return new Value(getTime(), data.duplicate());
     }
 
     static Value tombstone() {
@@ -32,14 +24,7 @@ public final class Value implements Comparable<Value> {
     }
 
     boolean isRemoved() {
-        if (data == null){
-            return true;
-        }else if (ttl>0){
-            if (getTime() > ts + ttl){
-                return true;
-            }
-        }
-        return false;
+        return data == null;
     }
 
     ByteBuffer getData() {

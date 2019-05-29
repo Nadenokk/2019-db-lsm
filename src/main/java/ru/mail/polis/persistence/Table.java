@@ -12,7 +12,7 @@ public interface Table {
     @NotNull
     Iterator<Cell> iterator(@NotNull ByteBuffer from) throws IOException;
 
-    void upsert(@NotNull ByteBuffer key, @NotNull ByteBuffer value,long ttl) throws IOException;
+    void upsert(@NotNull ByteBuffer key, @NotNull ByteBuffer value) throws IOException;
 
     void remove(@NotNull ByteBuffer key) throws IOException;
 

@@ -21,6 +21,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.channels.WritableByteChannel;
+import java.nio.channels.Channels;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -84,13 +88,34 @@ public interface DAO extends Closeable {
         }
     }
 
+    @NotNull
+    default OutputStream getStream(@NotNull ByteBuffer key) throws IOException, NoSuchElementException {
+        final Iterator<Record> iter = iterator(key);
+        if (!iter.hasNext()) {
+            throw new NoSuchElementException("Not found");
+        }
+
+        final Record next = iter.next();
+        if (next.getKey().equals(key)) {
+            OutputStream outputStream = null;
+            WritableByteChannel channel = Channels.newChannel(outputStream);
+            channel.write(next.getValue());
+            return outputStream;
+        } else {
+            throw new NoSuchElementException("Not found");
+        }
+    }
+
     /**
      * Inserts or updates value by given key.
      */
     void upsert(
             @NotNull ByteBuffer key,
-            @NotNull ByteBuffer value,
-            Integer ... opt) throws IOException;
+            @NotNull ByteBuffer value) throws IOException;
+
+    void upsert(
+            @NotNull ByteBuffer key,
+            @NotNull InputStream value) throws IOException;
 
     /**
      * Removes value by given key.
