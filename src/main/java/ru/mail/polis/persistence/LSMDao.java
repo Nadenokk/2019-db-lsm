@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -152,8 +153,12 @@ public final class LSMDao implements DAO {
         }
         final Record next = iter.next();
         if (next.getKey().equals(key)) {
-            WritableByteChannel channel = Channels.newChannel(outputStream);
-            channel.write(next.getValue());
+            try {
+                final WritableByteChannel channel = Channels.newChannel(outputStream);
+                channel.write(next.getValue());
+            } catch (ClosedChannelException e){
+                ;
+            }
         } else {
             throw new NoSuchElementException("Not found");
         }
