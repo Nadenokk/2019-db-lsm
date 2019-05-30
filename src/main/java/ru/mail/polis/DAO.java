@@ -87,27 +87,11 @@ public interface DAO extends Closeable {
             throw new NoSuchElementException("Not found");
         }
     }
-    /**
-     * Obtains {@link Record} corresponding to given key.
-     *
-     * @throws NoSuchElementException if no such record
-     */
-    default OutputStream getStream(@NotNull ByteBuffer key) throws IOException, NoSuchElementException {
-        final Iterator<Record> iter = iterator(key);
-        if (!iter.hasNext()) {
-            throw new NoSuchElementException("Not found");
-        }
 
-        final Record next = iter.next();
-        if (next.getKey().equals(key)) {
-            OutputStream outputStream = null;
-            final WritableByteChannel channel = Channels.newChannel(outputStream);
-            channel.write(next.getValue());
-            return outputStream;
-        } else {
-            throw new NoSuchElementException("Not found");
-        }
-    }
+    /**
+     * Get  outputStream by given key.
+     */
+    OutputStream getStream(@NotNull ByteBuffer key) throws IOException, NoSuchElementException;
 
     /**
      * Inserts or updates value by given key.

@@ -8,13 +8,17 @@ import ru.mail.polis.Record;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.io.InputStream;
@@ -137,5 +141,23 @@ public final class LSMDao implements DAO {
         final Iterator<Cell> cells = Iters.collapseEquals(Iterators
                 .mergeSorted(filesIterators, Cell.COMPARATOR), Cell::getKey);
         return Iterators.filter(cells, cell -> !cell.getValue().isRemoved());
+    }
+
+    @Override
+    public OutputStream getStream(@NotNull ByteBuffer key) throws IOException, NoSuchElementException {
+        final Iterator<Record> iter = iterator(key);
+        if (!iter.hasNext()) {
+            throw new NoSuchElementException("Not found");
+        }
+
+        final Record next = iter.next();
+        if (next.getKey().equals(key)) {
+            OutputStream outputStream = null;
+            final WritableByteChannel channel = Channels.newChannel(outputStream);
+            channel.write(next.getValue());
+            return outputStream;
+        } else {
+            throw new NoSuchElementException("Not found");
+        }
     }
 }
