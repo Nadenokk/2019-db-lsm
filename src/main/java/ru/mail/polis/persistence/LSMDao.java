@@ -147,18 +147,14 @@ public final class LSMDao implements DAO {
     public void getStream(@NotNull final ByteBuffer key,
                           final OutputStream outputStream) throws IOException, NoSuchElementException {
         final Iterator<Record> iter = iterator(key);
-        WritableByteChannel channel = null;
         if (!iter.hasNext()) {
             throw new NoSuchElementException("Not found");
         }
         final Record next = iter.next();
         if (next.getKey().equals(key)) {
-            try {
-                channel = Channels.newChannel(outputStream);
-                channel.write(next.getValue());
-            } finally {
-                channel.close();
-            }
+            final WritableByteChannel channel = Channels.newChannel(outputStream);
+            channel.write(next.getValue());
+            channel.close();
         } else {
             throw new NoSuchElementException("Not found");
         }
