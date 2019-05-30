@@ -156,8 +156,8 @@ public final class LSMDao implements DAO {
             try {
                 final WritableByteChannel channel = Channels.newChannel(outputStream);
                 channel.write(next.getValue());
-            } catch (ClosedChannelException e){
-                ;
+            } finally {
+                System.out.println("Close channel");
             }
         } else {
             throw new NoSuchElementException("Not found");
