@@ -99,7 +99,7 @@ public interface DAO extends Closeable {
             @NotNull ByteBuffer key,
             @NotNull ByteBuffer value) throws IOException;
 
-    void upsert(
+    void upsertStream(
             @NotNull ByteBuffer key,
             @NotNull InputStream value) throws IOException;
 

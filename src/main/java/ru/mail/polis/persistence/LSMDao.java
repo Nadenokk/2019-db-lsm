@@ -73,7 +73,6 @@ public final class LSMDao implements DAO {
         return Iterators.transform( cellIterator(from), cell -> Record.of(cell.getKey(), cell.getValue().getData()));
     }
 
-
     @Override
     public void upsert(@NotNull final ByteBuffer key, @NotNull final ByteBuffer value) throws IOException {
         memTable.upsert(key, value);
@@ -83,12 +82,42 @@ public final class LSMDao implements DAO {
     }
 
     @Override
-    public void upsert(@NotNull final ByteBuffer key, @NotNull final InputStream stream) throws IOException {
-        final byte[] bytes = stream.readAllBytes();
-        final ByteBuffer value = ByteBuffer.wrap(bytes);
+    public void upsertStream(@NotNull final ByteBuffer key, @NotNull final InputStream stream) throws IOException {
+        int read =0;
+        final ByteBuffer value = ByteBuffer.allocateDirect(stream.available());
+        value.clear();
+        int curent = stream.available();
+        byte[] bytes = new byte[1024];
+        while ((read = stream.read(bytes)) != -1) {
+            int p = Math.min(curent,bytes.length);
+            for (int i =0; i<p;i++) {
+                value.put(bytes[i]);
+            }
+            curent =curent - p;
+        }
+        value.flip();
         memTable.upsert(key, value);
         if (memTable.sizeInBytes() >= flushThreshold) {
             flush(memTable.iterator(nullBuffer));
+        }
+    }
+
+    @Override
+    public void getStream(@NotNull final ByteBuffer key,
+                          final OutputStream outputStream) throws IOException, NoSuchElementException {
+        final Iterator<Record> iter = iterator(key);
+        if (!iter.hasNext()) {
+            throw new NoSuchElementException("Not found");
+        }
+        final Record next = iter.next();
+        if (next.getKey().equals(key)) {
+
+            final WritableByteChannel channel = Channels.newChannel(outputStream);
+            channel.write(next.getValue());
+            channel.close();
+
+        } else {
+            throw new NoSuchElementException("Not found");
         }
     }
 
@@ -141,22 +170,5 @@ public final class LSMDao implements DAO {
         final Iterator<Cell> cells = Iters.collapseEquals(Iterators
                 .mergeSorted(filesIterators, Cell.COMPARATOR), Cell::getKey);
         return Iterators.filter(cells, cell -> !cell.getValue().isRemoved());
-    }
-
-    @Override
-    public void getStream(@NotNull final ByteBuffer key,
-                          final OutputStream outputStream) throws IOException, NoSuchElementException {
-        final Iterator<Record> iter = iterator(key);
-        if (!iter.hasNext()) {
-            throw new NoSuchElementException("Not found");
-        }
-        final Record next = iter.next();
-        if (next.getKey().equals(key)) {
-            final WritableByteChannel channel = Channels.newChannel(outputStream);
-            channel.write(next.getValue());
-            channel.close();
-        } else {
-            throw new NoSuchElementException("Not found");
-        }
     }
 }
