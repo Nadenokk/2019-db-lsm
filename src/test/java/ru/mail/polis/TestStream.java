@@ -124,17 +124,16 @@ public class TestStream {
 
 
                 InputStream inputStream = new FileInputStream(file);
-                int read = 0;
                 final ByteBuffer valueTmp = ByteBuffer.allocateDirect(inputStream.available());
                 valueTmp.clear();
                 int curent = inputStream.available();
-                byte[] bytes = new byte[1024];
-                while ((read = inputStream.read(bytes)) != -1) {
-                    int p = Math.min(curent, bytes.length);
-                    for (int i = 0; i < p; i++) {
+                final byte[] bytes = new byte[1024];
+                while ((inputStream.read(bytes)) != -1) {
+                    final int shiftBuf = Math.min(curent, bytes.length);
+                    for (int i = 0; i < shiftBuf; i++) {
                         valueTmp.put(bytes[i]);
                     }
-                    curent = curent - p;
+                    curent = curent - shiftBuf;
                 }
                 value.flip();
                 inputStream.close();

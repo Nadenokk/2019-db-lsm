@@ -83,12 +83,11 @@ public final class LSMDao implements DAO {
 
     @Override
     public void upsertStream(@NotNull final ByteBuffer key, @NotNull final InputStream stream) throws IOException {
-        int read =0;
         final ByteBuffer value = ByteBuffer.allocateDirect(stream.available());
         value.clear();
         int curent = stream.available();
         final byte[] bytes = new byte[1024];
-        while ((read = stream.read(bytes)) != -1) {
+        while ((stream.read(bytes)) != -1) {
             final int shiftBuf = Math.min(curent,bytes.length);
             for (int i =0; i<shiftBuf;i++) {
                 value.put(bytes[i]);
