@@ -87,13 +87,13 @@ public final class LSMDao implements DAO {
         final ByteBuffer value = ByteBuffer.allocateDirect(stream.available());
         value.clear();
         int curent = stream.available();
-        byte[] bytes = new byte[1024];
+        final byte[] bytes = new byte[1024];
         while ((read = stream.read(bytes)) != -1) {
-            int p = Math.min(curent,bytes.length);
-            for (int i =0; i<p;i++) {
+            final int shiftBuf = Math.min(curent,bytes.length);
+            for (int i =0; i<shiftBuf;i++) {
                 value.put(bytes[i]);
             }
-            curent =curent - p;
+            curent =curent - shiftBuf;
         }
         value.flip();
         memTable.upsert(key, value);
