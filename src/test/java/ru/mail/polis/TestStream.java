@@ -50,7 +50,7 @@ public class TestStream {
     @Test
     void testStream(@TempDir File data) throws IOException {
         // Reference value
-        final int valueSize = 256 * 1024 * 1024;
+        final int valueSize = 1024 * 1024;
         final int keyCount = 16;
 
         final ByteBuffer value = ByteBuffer.allocateDirect(valueSize);
